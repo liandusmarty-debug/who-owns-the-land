@@ -14,15 +14,32 @@ STANDING_CAVEATS = [
     "Figures come from Census 2011, the latest census released at small-area level; many areas have changed since.",
     "Censuses undercount some populations, especially in informal settlements; rates there may be understated.",
     "Small areas have small populations; areas below the household threshold are suppressed and not ranked.",
-    "Cadastral and valuation-roll ownership does not reflect informal occupation or customary rights.",
+    "Cadastral ownership does not reflect informal occupation or customary rights.",
+    "Where no source states who owns a parcel, its owner type is shown as 'Not yet known'; "
+    "it is never assumed to be private.",
     "The deprivation index is relative: it ranks areas against each other within the city, "
     "not against a fixed standard.",
 ]
 
 
 def area_label(df: pd.DataFrame) -> pd.Series:
-    ward = df["ward_id"].fillna("Unknown ward")
-    return df["settlement"].fillna(ward).astype(str) + " · SAL " + df["sal_code"].astype(str)
+    """Readable name: settlement or census place, then suburb, then ward; plus the main place."""
+    name = df["settlement"].fillna(df["place"]).fillna(df["suburb"]).fillna(df["ward_id"]).fillna("Unnamed area")
+    ctx = df["main_place"].where(df["main_place"].notna() & (df["main_place"] != name))
+    return (
+        name.astype(str)
+        + ctx.map(lambda m: f" ({m})" if isinstance(m, str) else "")
+        + " · SAL "
+        + df["sal_code"].astype(str)
+    )
+
+
+OWNER_LABELS = {"Unknown": "Not yet known", "Unmapped": "Unmapped (roads, gaps)"}
+
+
+def owner_label(col: str) -> str:
+    name = col.removeprefix("own_").removesuffix("_pct").title()
+    return OWNER_LABELS.get(name, name)
 
 
 def _md_table(df: pd.DataFrame) -> str:
@@ -49,8 +66,12 @@ class ReportStage(Stage):
         cols = [
             "sal_code",
             "area_name",
+            "place",
+            "main_place",
+            "suburb",
             "ward_id",
             "settlement",
+            "in_pilot",
             "population",
             "households",
             "area_km2",
@@ -82,6 +103,7 @@ class ReportStage(Stage):
         ].copy()
         top_view["deprivation_index"] = top_view["deprivation_index"].round(2)
         top_view["households"] = top_view["households"].astype("Int64")
+        top_view["dominant_owner"] = top_view["dominant_owner"].map(lambda o: OWNER_LABELS.get(o, o))
         top_view.columns = ["Rank", "Area", "Ward", "Households", "Index", "Main owner type"]
 
         a = ctx["areas"]
@@ -92,17 +114,13 @@ class ReportStage(Stage):
         q5_mix = pd.Series({c: float((q5[c] * q5["area_km2"]).sum()) / q5_area for c in own_cols}).round(1)
         mix = pd.DataFrame(
             {
-                "Owner type": [c.removeprefix("own_").removesuffix("_pct").title() for c in own_cols],
+                "Owner type": [owner_label(c) for c in own_cols],
                 "All areas (% of land)": city_mix.values,
                 "Most deprived quintile (% of land)": q5_mix.values,
             }
         )
-        stl = ctx["settlement_ownership"].reset_index()
-        stl[stl.select_dtypes("float").columns] = stl.select_dtypes("float").astype(float).round(1)
-        stl.columns = ["Settlement"] + [
-            c.removeprefix("own_").removesuffix("_pct").title() if c.startswith("own_") else c.replace("_", " ").title()
-            for c in stl.columns[1:]
-        ]
+        unknown_col = f"own_{cfg.owner_unknown.lower()}_pct"
+        known = round(100 - city_mix.get(unknown_col, 0) - city_mix.get("own_unmapped_pct", 0), 1)
 
         banner = "> **SYNTHETIC SAMPLE DATA — for development only. Not real findings.**\n\n" if ctx.sample_mode else ""
         return (
@@ -114,8 +132,9 @@ class ReportStage(Stage):
             f"{_md_table(top_view)}\n\n"
             "## Land ownership by owner type\n\n"
             f"{_md_table(mix)}\n\n"
-            "## Ownership within informal settlements (% of settlement area)\n\n"
-            f"{_md_table(stl)}\n\n"
+            f"Owner type is known for **{known}%** of all land. The rest is 'Not yet known' (no source yet "
+            "states the owner) or unmapped (mostly roads). Coverage grows as data requests are answered "
+            "(see docs/requests/).\n\n"
             "## Method\n\n"
             "Each indicator is a percentage of households (or adults / labour force). Indicators are "
             f"normalised ({cfg.normaliser}), averaged with configurable weights, ranked (1 = most deprived) "
@@ -127,10 +146,10 @@ class ReportStage(Stage):
     def _pilot(self, ctx: Context, own_cols: list[str]) -> str:
         cfg = ctx.config
         a = ctx["areas"]
-        sub = a[a["settlement"] == cfg.pilot_name]
+        sub = a[a["in_pilot"]]
         banner = "> **SYNTHETIC SAMPLE DATA — for development only.**\n\n" if ctx.sample_mode else ""
         if sub.empty:
-            return f"# {cfg.pilot_name} profile\n\n{banner}No small areas matched this settlement name.\n"
+            return f"# {cfg.pilot_name} profile\n\n{banner}No small areas matched this place name.\n"
 
         lines = [
             f"# {cfg.pilot_name} — area profile\n",
@@ -149,11 +168,17 @@ class ReportStage(Stage):
             city = a[s.numerator].sum() / max(a[s.denominator].sum(), 1) * 100
             lines.append(f"| {s.label} | {local:.1f}% | {city:.1f}% |")
 
-        lines += ["", "## Who owns the land under it\n", "| Owner type | % of settlement area |", "|---|---|"]
-        so = ctx["settlement_ownership"]
-        if cfg.pilot_name in so.index:
-            row = so.loc[cfg.pilot_name]
+        places = ", ".join(sorted(sub["place"].dropna().unique()))
+        lines += [
+            "",
+            "## Who owns the land under it\n",
+            f"_Census places included: {places}_\n",
+            "| Owner type | % of area |",
+            "|---|---|",
+        ]
+        row = ctx.tables.get("pilot_ownership")
+        if row is not None:
             for c in own_cols:
-                lines.append(f"| {c.removeprefix('own_').removesuffix('_pct').title()} | {row[c]:.1f}% |")
+                lines.append(f"| {owner_label(c)} | {row[c]:.1f}% |")
         lines += ["", "## Caveats\n", *[f"- {c}" for c in ctx["caveats_all"]], ""]
         return "\n".join(lines)

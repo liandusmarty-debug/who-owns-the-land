@@ -3,21 +3,21 @@
   --accent: #1f6f5c; --accent-ink: #ffffff; --warn-bg: #fff4d6; --warn-ink: #5a4300;
   /* deprivation: 1 least → 5 most */
   --q1: #fef0d9; --q2: #fdcc8a; --q3: #fc8d59; --q4: #e34a33; --q5: #b30000; --qna: #c9c6bd;
-  /* owner types: City, Province, National, Private, Other, Unmapped */
-  --o0: #1f78b4; --o1: #33a02c; --o2: #6a3d9a; --o3: #e6a817; --o4: #b15928; --o5: #bdbab1;
+  /* owner types: City, Province, National, Private, Other, Not yet known, Unmapped */
+  --o0: #1f78b4; --o1: #33a02c; --o2: #6a3d9a; --o3: #e6a817; --o4: #b15928; --o5: #8f8a80; --o6: #dcd9d0;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #151513; --surface: #1f1f1c; --text: #ecebe6; --muted: #a8a59c; --line: #34332f;
     --accent: #4fb89c; --accent-ink: #0d1f1a; --warn-bg: #3a3014; --warn-ink: #f5dc9a; --qna: #4a4944;
-    --o5: #5d5b55; color-scheme: dark;
+    --o5: #77736b; --o6: #45443f; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #151513; --surface: #1f1f1c; --text: #ecebe6; --muted: #a8a59c; --line: #34332f;
   --accent: #4fb89c; --accent-ink: #0d1f1a; --warn-bg: #3a3014; --warn-ink: #f5dc9a; --qna: #4a4944;
-  --o5: #5d5b55; color-scheme: dark;
+  --o5: #77736b; --o6: #45443f; color-scheme: dark;
 }
 
 * { box-sizing: border-box; }

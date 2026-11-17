@@ -10,6 +10,7 @@
   const META = DATA.meta;
   const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const ownerLabel = (o) => (META.owner_labels && META.owner_labels[o]) || o;
   const fmt = (n, d = 0) => (n == null ? "—" : Number(n).toLocaleString("en-ZA", { maximumFractionDigits: d }));
 
   class Palette {
@@ -30,7 +31,7 @@
       const items = mode === "dep"
         ? [[p.quintile[4], "Most deprived 20%"], [p.quintile[3], "More deprived"], [p.quintile[2], "Middle"], [p.quintile[1], "Less deprived"],
            [p.quintile[0], "Least deprived 20%"], [p.none, "Too few households to show"]]
-        : META.owners.map((o, i) => [p.owner[i], o === "Unmapped" ? "Unmapped (roads, gaps)" : o]);
+        : META.owners.map((o, i) => [p.owner[i], ownerLabel(o)]);
       const title = mode === "dep" ? "Living conditions compared across the city" : "Main owner of the land";
       this.el.innerHTML = `<div class="legend"><h2>${title}</h2><ul>${items
         .map(([c, t]) => `<li><span class="sw" style="background:${c}"></span>${esc(t) || "&nbsp;"}</li>`).join("")}</ul></div>`;
@@ -47,12 +48,12 @@
           <div class="track"><div class="fill" style="width:${v ?? 0}%"></div></div></div>`;
       }).join("");
       const stack = META.owners.map((o, i) => p.o[i] > 0
-        ? `<span title="${esc(o)} ${p.o[i]}%" style="width:${p.o[i]}%;background:${this.palette.owner[i]}"></span>` : "").join("");
+        ? `<span title="${esc(ownerLabel(o))} ${p.o[i]}%" style="width:${p.o[i]}%;background:${this.palette.owner[i]}"></span>` : "").join("");
       const ownRows = META.owners.map((o, i) => p.o[i] > 0.5
-        ? `<li><span class="sw" style="background:${this.palette.owner[i]}"></span>${esc(o)} — ${p.o[i].toFixed(0)}%</li>` : "").join("");
+        ? `<li><span class="sw" style="background:${this.palette.owner[i]}"></span>${esc(ownerLabel(o))} — ${p.o[i].toFixed(0)}%</li>` : "").join("");
       this.el.innerHTML = `
-        <h2>${esc(p.s || p.w || "Small area")}</h2>
-        <p class="sub">${esc(p.w || "")} · Small area ${esc(p.c)}</p>
+        <h2>${esc(p.s || p.b || p.w || "Small area")}</h2>
+        <p class="sub">${[p.m, p.b && p.b !== p.s ? p.b + " suburb" : null, p.w, "Small area " + p.c].filter(Boolean).map(esc).join(" · ")}</p>
         ${sup ? `<p class="hint">Fewer households live here than our privacy threshold, so living-condition figures are hidden.</p>` : `
         <div class="kpis">
           <div class="kpi"><b>${fmt(p.r)} <small>of ${fmt(META.ranked)}</small></b><span>Rank (1 = most deprived)</span></div>
@@ -119,7 +120,7 @@
       const hits = [];
       this.layer.eachLayer((l) => {
         const p = l.feature.properties;
-        if ([p.s, p.w, p.c].some((v) => v && String(v).toLowerCase() === q)) hits.push(l);
+        if ([p.s, p.b, p.m, p.w, p.c].some((v) => v && String(v).toLowerCase() === q)) hits.push(l);
       });
       if (!hits.length) return;
       this.map.fitBounds(L.featureGroup(hits).getBounds(), { maxZoom: 16, padding: [20, 20] });
@@ -138,7 +139,7 @@
   }));
 
   const names = new Set();
-  DATA.features.forEach((f) => { if (f.properties.s) names.add(f.properties.s); if (f.properties.w) names.add(f.properties.w); });
+  DATA.features.forEach((f) => { ["s", "b", "m", "w"].forEach((k) => { if (f.properties[k]) names.add(f.properties[k]); }); });
   document.getElementById("places").innerHTML = [...names].sort().map((n) => `<option value="${esc(n)}">`).join("");
   const search = document.getElementById("search");
   search.addEventListener("change", () => view.find(search.value));

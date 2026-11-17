@@ -19,6 +19,10 @@ from .ownership import UNMAPPED
 from .pipeline import Context, Stage
 
 
+def _str(v: object) -> str | None:
+    return v if isinstance(v, str) and v else None
+
+
 def _num(v: object, nd: int = 1) -> float | None:
     """Round for JSON; NaN/NA/None -> null."""
     try:
@@ -54,14 +58,16 @@ class WebExporter:
                         "c": r["sal_code"],
                         "n": r["area_name"],
                         "w": r["ward_id"],
-                        "s": None if r["settlement"] is None or r["settlement"] != r["settlement"] else r["settlement"],
+                        "s": _str(r["settlement"]) or _str(r["place"]),
+                        "m": _str(r["main_place"]),
+                        "b": _str(r["suburb"]),
                         "h": None if sup else _num(r["households"], 0),
                         "q": None if sup else _num(r["deprivation_quintile"], 0),
                         "r": None if sup else _num(r["deprivation_rank"], 0),
                         "x": None if sup else _num(r["deprivation_index"], 2),
                         "i": [None if sup else _num(r[c]) for c in ind_cols],
                         "o": [_num(r[c]) for c in own_cols],
-                        "d": r["dominant_owner"] if isinstance(r["dominant_owner"], str) else None,
+                        "d": _str(r["dominant_owner"]),
                         "z": int(sup),
                     },
                 }
@@ -75,6 +81,7 @@ class WebExporter:
                 "quintiles": cfg.quintiles,
                 "indicators": [s.label for s in cfg.indicators],
                 "owners": [*cfg.owner_categories, UNMAPPED],
+                "owner_labels": {cfg.owner_unknown: "Not yet known", UNMAPPED: "Unmapped (roads, gaps)"},
                 "pilot": cfg.pilot_name,
                 "caveats": ctx.tables.get("caveats_all", []),
             },
