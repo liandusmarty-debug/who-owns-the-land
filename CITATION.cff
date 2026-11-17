@@ -3,7 +3,7 @@ message: "If you use this work, please cite it as below."
 title: "Who Owns the Land? — neighbourhood profiles of deprivation and land ownership, City of Cape Town"
 type: software
 authors:
-  - name: "Who Owns the Land? contributors"
+  - name: "liandusmarty-debug"
 repository-code: "https://github.com/liandusmarty-debug/who-owns-the-land"
 license: MIT
 keywords:
