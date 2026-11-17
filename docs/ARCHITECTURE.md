@@ -16,12 +16,14 @@
 ```
 Context (config + named tables)
    │
-   ├─ IngestStage / SampleIngestStage   data/raw/<id>/  → manifest.json, sources.md
-   ├─ CleanStage        CRS → EPSG:4326, make_valid, harmonise SAL codes,
-   │                    OwnerTypeClassifier → owner_type, PrivacyGuard.strip → data/processed/*.parquet
-   ├─ JoinStage         census ⨝ SAL polygons; ward via representative point; settlement via ≥25% overlap
+   ├─ IngestStage / SampleIngestStage   ArcGIS layers + manual files → data/raw/<id>/, manifest.json, sources.md
+   │                                    Census2011Builder: SuperWEB2 exports → canonical counts per small area
+   ├─ CleanStage        CRS → EPSG:4326, make_valid, harmonise codes and names
+   │                    OwnerTypeResolver: owner list → Surveyor-General public land → "Unknown"
+   │                    PrivacyGuard.strip → data/processed/*.parquet
+   ├─ JoinStage         census ⨝ small areas; ward + suburb via representative point; census place names
    ├─ IndexStage        Indicator (rate) → Normaliser (ZScore | MinMax) → DeprivationIndex (weighted, rank, quintile)
-   ├─ OwnershipStage    OwnershipOverlay: % of area by owner type per SAL and per settlement (+ Unmapped)
+   ├─ OwnershipStage    OwnershipOverlay (hybrid): small parcels by point, large parcels cut exactly
    ├─ ReportStage       neighbourhood_profiles.csv, summary.md, pilot profile
    └─ MapStage          WebExporter: simplify (5 m) → round coords (1e-5°) → compact keys → data/areas.js
 ```
@@ -32,10 +34,13 @@ Context (config + named tables)
 | `Stage`, `Pipeline`, `Context` | `pipeline.py` | Runs stages in order and times each one |
 | `SourceLog` | `sources.py` | Provenance: checksums, dates, licences |
 | `PrivacyGuard` | `privacy.py` | POPIA guard-rails and small-area suppression |
-| `OwnerTypeClassifier` | `clean.py` | Regex rules from config, run once per unique owner |
+| `Census2011Builder`, `TableSpec`, `CountRule` | `census.py` | Reads SuperWEB2 cross-tab exports; category rules from config |
+| `OwnerTypeResolver` | `clean.py` | Owner type per parcel in order of evidence; never assumes private |
+| `OwnerTypeClassifier` | `clean.py` | Regex rules from config, run once per unique owner name |
+| `ArcGISLayerFetcher` | `ingest.py` | Paged ArcGIS REST downloads into raw GeoJSON |
 | `Normaliser` → `ZScore`, `MinMax` | `index.py` | Strategy pattern |
 | `DeprivationIndex`, `Indicator` | `index.py` | The composite score |
-| `OwnershipOverlay` | `ownership.py` | Spatial intersection by owner type |
+| `OwnershipOverlay` | `ownership.py` | Hybrid area-by-owner-type: point assignment for erven, exact cut for parcels ≥ 2 ha |
 | `WebExporter` | `map.py` | Builds the lightweight data file for the map |
 
 Spatial overlays (`geopandas.overlay`, `sjoin`) use an STRtree spatial index. Area maths uses

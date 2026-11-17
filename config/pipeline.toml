@@ -19,8 +19,9 @@ forbidden_columns = [
 normaliser = "zscore"   # "zscore" or "minmax"
 quintiles  = 5          # 1 = least deprived … 5 = most deprived
 
-# Each indicator is numerator / denominator, using canonical census column names
-# (see [census.column_map]). Weights are relative; equal by default.
+# Each indicator is numerator / denominator, using the canonical census counts built in
+# [census.tables] below. Each denominator is the valid total of the indicator's own table
+# (excluding "Unspecified" / "Not applicable"). Weights are relative; equal by default.
 [index.indicators.informal_dwelling]
 label = "Households in informal dwellings"
 numerator = "hh_informal"
@@ -30,25 +31,25 @@ weight = 1.0
 [index.indicators.no_piped_water]
 label = "Households without piped water in dwelling or yard"
 numerator = "hh_no_piped_water"
-denominator = "households"
+denominator = "hh_water_total"
 weight = 1.0
 
 [index.indicators.no_flush_toilet]
 label = "Households without a flush toilet"
 numerator = "hh_no_flush_toilet"
-denominator = "households"
+denominator = "hh_toilet_total"
 weight = 1.0
 
 [index.indicators.no_electric_light]
 label = "Households without electricity for lighting"
 numerator = "hh_no_electric_light"
-denominator = "households"
+denominator = "hh_lighting_total"
 weight = 1.0
 
 [index.indicators.low_income]
-label = "Households with low or no income"
+label = "Households with low or no income (under R38,200 a year in 2011)"
 numerator = "hh_low_income"
-denominator = "households"
+denominator = "hh_income_total"
 weight = 1.0
 
 [index.indicators.unemployment]
@@ -63,29 +64,68 @@ numerator = "adults_no_matric"
 denominator = "adults_20plus"
 weight = 1.0
 
+# ---------------------------------------------------------------------------
+# Census 2011 small-area tables (Stats SA SuperWEB2 exports in data/raw/census_sal/).
+# One CSV per table, named <file>.csv. Category labels are matched AFTER normalising:
+# lowercase, keep only a-z0-9 ("Piped (tap) water inside yard" -> "pipedtapwaterinsideyard").
+# Patterns are regular expressions on that normalised label.
+#   total      = name for the sum of valid categories (the indicator denominator)
+#   total_all  = name for the sum of every category (used for population)
+#   counts.X   = { match = [...] }  sum of matching categories
+#              = { not = [...] }    valid total minus matching categories
+# VERIFY these labels against the first real export: the pipeline stops with the list of
+# available categories if a rule matches nothing.
+# ---------------------------------------------------------------------------
 [census]
-# Map raw Stats SA column names -> canonical names used in code.
-# Fill in once the real SAL tables are downloaded; identity mapping for sample data.
 key = "sal_code"
-[census.column_map]
-sal_code = "sal_code"
-population = "population"
-households = "households"
-hh_informal = "hh_informal"
-hh_no_piped_water = "hh_no_piped_water"
-hh_no_flush_toilet = "hh_no_flush_toilet"
-hh_no_electric_light = "hh_no_electric_light"
-hh_low_income = "hh_low_income"
-labour_force = "labour_force"
-unemployed = "unemployed"
-adults_20plus = "adults_20plus"
-adults_no_matric = "adults_no_matric"
+exclude = ["^total$", "unspecified", "notapplicable", "donotknow"]
+
+[census.tables.dwelling_type]
+total = "households"
+counts.hh_informal = { match = ["informaldwelling", "shack"] }
+
+[census.tables.piped_water]
+total = "hh_water_total"
+counts.hh_no_piped_water = { not = ["insidedwelling", "insideyard"] }
+
+[census.tables.toilet_facilities]
+total = "hh_toilet_total"
+counts.hh_no_flush_toilet = { not = ["^flushtoilet"] }
+
+[census.tables.energy_lighting]
+total = "hh_lighting_total"
+counts.hh_no_electric_light = { not = ["^electricity"] }
+
+[census.tables.household_income]
+total = "hh_income_total"
+counts.hh_low_income = { match = ["^noincome", "^r1r4800", "^r4801r9600", "^r9601r19600", "^r19601r38200"] }
+
+[census.tables.employment_status]
+# export for ALL persons (incl. "Age less than 15 years") so total_all is the population
+total_all = "population"
+counts.labour_force = { match = ["^employed$", "^unemployed$"] }
+counts.unemployed = { match = ["^unemployed$"] }
+
+[census.tables.education_20plus]
+# export filtered to persons aged 20+
+total = "adults_20plus"
+counts.adults_no_matric = { match = ["^noschooling", "^grade0", "^grade[1-9](?![0-9])", "^grade1[01]", "lessthangrade12"] }
 
 [ownership]
-# Owner-type rules: first regex match (case-insensitive) on the raw owner field wins.
-# Raw owner names are classified then DROPPED in the clean stage — never stored.
-categories = ["City", "Province", "National", "Private", "Other"]
-default = "Private"
+# Owner TYPE per parcel, first that applies:
+#   1. data/raw/owner_types/*.csv  (sg26_code + owner_type, or a raw owner name that is classified
+#      by the rules below and then DROPPED — never stored)
+#   2. Surveyor-General public layers  ([ownership.public_layers])
+#   3. otherwise `unknown` — land without owner information is never assumed to be private
+categories = ["City", "Province", "National", "Private", "Other", "Unknown"]
+unknown = "Unknown"
+name_default = "Private"   # a raw owner NAME matching no rule is a private person or company
+
+[ownership.public_layers]
+sg_public_places = "City"     # public places vest in the municipality
+sg_streets = "City"           # public road reserves
+sg_state_land = "National"    # unalienated state land
+
 [[ownership.rules]]
 pattern = "city of cape town|cape town municipality|municipality"
 type = "City"

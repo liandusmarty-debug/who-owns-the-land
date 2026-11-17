@@ -6,6 +6,8 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .census import TableSpec
+
 
 @dataclass(frozen=True, slots=True)
 class IndicatorSpec:
@@ -68,9 +70,12 @@ class PipelineConfig:
     quintiles: int
     indicators: tuple[IndicatorSpec, ...]
     census_key: str
-    census_column_map: dict[str, str]
+    census_tables: tuple[TableSpec, ...]
+    census_exclude: tuple[str, ...]
     owner_categories: tuple[str, ...]
-    owner_default: str
+    owner_unknown: str
+    owner_name_default: str
+    owner_public_layers: dict[str, str]
     owner_rules: tuple[OwnerRule, ...]
     pilot_name: str
     simplify_tolerance_m: float
@@ -82,6 +87,9 @@ class PipelineConfig:
         raw = tomllib.loads(path.read_text(encoding="utf-8"))
         root = root or path.resolve().parent.parent
         idx = raw["index"]
+        own = raw["ownership"]
+        if own["unknown"] not in own["categories"]:
+            raise ValueError("[ownership] unknown must be one of the categories")
         return cls(
             paths=Paths(root),
             storage_crs=raw["crs"]["storage"],
@@ -92,10 +100,13 @@ class PipelineConfig:
             quintiles=int(idx["quintiles"]),
             indicators=tuple(IndicatorSpec(key=k, **v) for k, v in idx["indicators"].items()),
             census_key=raw["census"]["key"],
-            census_column_map=dict(raw["census"]["column_map"]),
-            owner_categories=tuple(raw["ownership"]["categories"]),
-            owner_default=raw["ownership"]["default"],
-            owner_rules=tuple(OwnerRule(**r) for r in raw["ownership"]["rules"]),
+            census_tables=tuple(TableSpec.from_config(k, v) for k, v in raw["census"]["tables"].items()),
+            census_exclude=tuple(raw["census"].get("exclude", ())),
+            owner_categories=tuple(own["categories"]),
+            owner_unknown=own["unknown"],
+            owner_name_default=own["name_default"],
+            owner_public_layers=dict(own.get("public_layers", {})),
+            owner_rules=tuple(OwnerRule(**r) for r in own["rules"]),
             pilot_name=raw["pilot"]["name"],
             simplify_tolerance_m=float(raw["web"]["simplify_tolerance_m"]),
             coord_precision=int(raw["web"]["coord_precision"]),

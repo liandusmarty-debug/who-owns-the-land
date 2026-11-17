@@ -20,7 +20,7 @@ def cfg() -> PipelineConfig:
 
 
 def test_owner_classifier(cfg):
-    c = OwnerTypeClassifier(cfg.owner_rules, cfg.owner_default, cfg.owner_categories)
+    c = OwnerTypeClassifier(cfg.owner_rules, cfg.owner_name_default, cfg.owner_categories)
     assert c.classify_one("CITY OF CAPE TOWN") == "City"
     assert c.classify_one("Western Cape Provincial Government") == "Province"
     assert c.classify_one("REPUBLIC OF SOUTH AFRICA") == "National"
@@ -66,10 +66,16 @@ def test_sample_build_end_to_end(cfg, tmp_path):
     for f in ("neighbourhood_profiles.csv", "summary.md", "map.html", "data/areas.js", "profile_masiphumelele.md"):
         assert (out / f).exists(), f
     # sample mode must never download real data
-    assert not (tmp_path / "data" / "raw" / "_sample" / "parcels" / "parcels.geojson").exists()
-    assert not (tmp_path / "data" / "raw" / "_sample" / "sg_streets").exists()
+    sample_raw = tmp_path / "data" / "raw" / "_sample"
+    assert not list(sample_raw.rglob("query.json"))  # only the real ArcGIS downloader writes these
+    assert not (sample_raw / "sg_streets").exists()
     prof = pd.read_csv(out / "neighbourhood_profiles.csv")
     assert "owner_name" not in prof.columns
     assert prof.loc[prof["suppressed"], "deprivation_rank"].isna().all()
     own = prof.filter(like="own_").sum(axis=1)
-    assert own.between(99, 101).all()  # ownership shares (incl. unmapped) sum to ~100%
+    assert own.between(99, 101).all()  # ownership shares (incl. unknown + unmapped) sum to ~100%
+    assert prof["in_pilot"].sum() > 0  # Masiphumelele found via census place names
+    assert prof.loc[prof["in_pilot"], "place"].str.contains("Masiphumelele").all()
+    # no raw owner names anywhere in published or processed files
+    for f in [*out.rglob("*.csv"), *out.rglob("*.md"), out / "data" / "areas.js"]:
+        assert "SAMPLE PERSON" not in f.read_text(), f
