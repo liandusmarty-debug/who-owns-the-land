@@ -1,0 +1,150 @@
+# Who Owns the Land? — pipeline configuration.
+# Everything tunable lives here so analysts can change it without touching code.
+
+[crs]
+storage = "EPSG:4326"   # what we store and publish
+metric  = "EPSG:2048"   # Hartebeesthoek94 / Lo19 — metres, for area maths in Cape Town
+
+[privacy]
+# SALs with fewer households than this are flagged and excluded from ranking
+# (small numbers can make households identifiable and make rates unstable).
+min_households = 30
+# Columns that must never reach data/processed or outputs (POPIA guard).
+forbidden_columns = [
+  "owner_name", "owner", "registered_owner", "id_number", "id_no",
+  "person_name", "surname", "first_name", "contact", "phone", "email",
+]
+
+[index]
+normaliser = "zscore"   # "zscore" or "minmax"
+quintiles  = 5          # 1 = least deprived … 5 = most deprived
+
+# Each indicator is numerator / denominator, using canonical census column names
+# (see [census.column_map]). Weights are relative; equal by default.
+[index.indicators.informal_dwelling]
+label = "Households in informal dwellings"
+numerator = "hh_informal"
+denominator = "households"
+weight = 1.0
+
+[index.indicators.no_piped_water]
+label = "Households without piped water in dwelling or yard"
+numerator = "hh_no_piped_water"
+denominator = "households"
+weight = 1.0
+
+[index.indicators.no_flush_toilet]
+label = "Households without a flush toilet"
+numerator = "hh_no_flush_toilet"
+denominator = "households"
+weight = 1.0
+
+[index.indicators.no_electric_light]
+label = "Households without electricity for lighting"
+numerator = "hh_no_electric_light"
+denominator = "households"
+weight = 1.0
+
+[index.indicators.low_income]
+label = "Households with low or no income"
+numerator = "hh_low_income"
+denominator = "households"
+weight = 1.0
+
+[index.indicators.unemployment]
+label = "Unemployment rate"
+numerator = "unemployed"
+denominator = "labour_force"
+weight = 1.0
+
+[index.indicators.no_matric]
+label = "Adults (20+) without matric"
+numerator = "adults_no_matric"
+denominator = "adults_20plus"
+weight = 1.0
+
+[census]
+# Map raw Stats SA column names -> canonical names used in code.
+# Fill in once the real SAL tables are downloaded; identity mapping for sample data.
+key = "sal_code"
+[census.column_map]
+sal_code = "sal_code"
+population = "population"
+households = "households"
+hh_informal = "hh_informal"
+hh_no_piped_water = "hh_no_piped_water"
+hh_no_flush_toilet = "hh_no_flush_toilet"
+hh_no_electric_light = "hh_no_electric_light"
+hh_low_income = "hh_low_income"
+labour_force = "labour_force"
+unemployed = "unemployed"
+adults_20plus = "adults_20plus"
+adults_no_matric = "adults_no_matric"
+
+[ownership]
+# Owner-type rules: first regex match (case-insensitive) on the raw owner field wins.
+# Raw owner names are classified then DROPPED in the clean stage — never stored.
+categories = ["City", "Province", "National", "Private", "Other"]
+default = "Private"
+[[ownership.rules]]
+pattern = "city of cape town|cape town municipality|municipality"
+type = "City"
+[[ownership.rules]]
+pattern = "western cape|provincial government|province"
+type = "Province"
+[[ownership.rules]]
+pattern = "republic of south africa|national government|transnet|prasa|eskom|sanparks|public works"
+type = "National"
+[[ownership.rules]]
+pattern = "trust|church|community property association|\\bcpa\\b"
+type = "Other"
+
+[pilot]
+name = "Masiphumelele"
+
+[web]
+simplify_tolerance_m = 5.0   # geometry simplification before publishing
+coord_precision = 5          # decimal places (~1 m) — keeps the map light
+
+# ---------------------------------------------------------------------------
+# Data sources. Every dataset must declare publisher, licence and URL.
+# A source with an empty url is fetched manually: drop the file into
+# data/raw/<id>/ and the pipeline will pick it up and log it.
+# ---------------------------------------------------------------------------
+[[sources]]
+id = "census_sal"
+title = "Census 2022 — Small Area Layer attribute tables"
+publisher = "Statistics South Africa"
+licence = "TODO: confirm Stats SA terms of use"
+url = ""
+notes = "Download SAL-level tables for City of Cape Town from Stats SA SuperWEB2 / data portal."
+
+[[sources]]
+id = "sal_boundaries"
+title = "Census 2022 SAL boundaries"
+publisher = "Statistics South Africa / Municipal Demarcation Board"
+licence = "TODO: confirm"
+url = ""
+notes = "Shapefile or GeoPackage of SAL polygons."
+
+[[sources]]
+id = "wards"
+title = "Municipal wards"
+publisher = "City of Cape Town Open Data Portal"
+licence = "TODO: confirm City of Cape Town open data licence"
+url = ""
+
+[[sources]]
+id = "informal_settlements"
+title = "Informal settlement boundaries"
+publisher = "City of Cape Town Open Data Portal"
+licence = "TODO: confirm"
+url = ""
+
+[[sources]]
+id = "parcels"
+title = "Land parcels / cadastre with valuation-roll owner type"
+publisher = "City of Cape Town Open Data Portal; Surveyor-General (Cape Town)"
+licence = "TODO: confirm"
+url = ""
+notes = "Must contain a raw owner field for classification; names are dropped after classifying."

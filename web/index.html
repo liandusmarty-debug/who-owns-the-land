@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Who Owns the Land?</title>
+  <meta name="description" content="Neighbourhood-level profiles of living conditions and land ownership in the City of Cape Town.">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand">
+      <h1>Who Owns the Land?</h1>
+      <p>Living conditions and land ownership, neighbourhood by neighbourhood. City of Cape Town.</p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="radiogroup" aria-label="What the map shows">
+        <button role="radio" aria-checked="true" data-mode="dep">Living conditions</button>
+        <button role="radio" aria-checked="false" data-mode="own">Who owns it</button>
+      </div>
+      <input id="search" type="search" list="places" placeholder="Find a place or ward…" aria-label="Find a place or ward" autocomplete="off">
+      <datalist id="places"></datalist>
+    </div>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <main class="layout">
+    <div id="map" aria-label="Map of neighbourhoods"></div>
+    <aside id="panel" class="panel" aria-live="polite">
+      <div id="legend"></div>
+      <div id="detail" class="detail">
+        <p class="hint">Tap any neighbourhood on the map to see its profile.</p>
+      </div>
+      <details class="about">
+        <summary>About this data</summary>
+        <div id="about"></div>
+      </details>
+    </aside>
+  </main>
+
+  <noscript><p class="banner">This map needs JavaScript. The full table is in neighbourhood_profiles.csv.</p></noscript>
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="data/areas.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
