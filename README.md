@@ -204,6 +204,25 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) to get started, and please follow our
 [Code of Conduct](CODE_OF_CONDUCT.md). Spotted a figure that looks wrong, or know a dataset we
 should use? [Open a data issue](https://github.com/liandusmarty-debug/who-owns-the-land/issues/new/choose).
 
+Longer-form notes, data-source research and meeting notes live in the
+[project Wiki](https://github.com/liandusmarty-debug/who-owns-the-land/wiki), and planned work is
+tracked on the [project board](https://github.com/liandusmarty-debug/who-owns-the-land/projects).
+
+## Support this project
+
+*Who Owns the Land?* is a non-profit, volunteer-run project. Our running costs are small because the
+site is static, but licensed datasets (such as Deeds Office records for priority areas), community
+workshops and translations all cost money.
+
+**Donations will open soon.** Until then, the most valuable support costs nothing:
+
+- 📍 **Check your area.** If a figure or owner type looks wrong,
+  [open a data issue](https://github.com/liandusmarty-debug/who-owns-the-land/issues/new/choose).
+- 🗣️ **Translate** the map and explainers into isiXhosa, Afrikaans or another language.
+- 📱 **Test on an older phone** and tell us what was slow or confusing.
+- 📣 **Share the map** with community organisations, journalists, researchers and ward councillors.
+- ⭐ **Star this repository** so more people can find it.
+
 ## Licence and citation
 
 - **Code:** [MIT](LICENSE). Free to use, adapt and share.
