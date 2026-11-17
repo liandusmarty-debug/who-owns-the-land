@@ -86,9 +86,7 @@ class PipelineConfig:
             forbidden_columns=frozenset(c.lower() for c in raw["privacy"]["forbidden_columns"]),
             normaliser=idx["normaliser"],
             quintiles=int(idx["quintiles"]),
-            indicators=tuple(
-                IndicatorSpec(key=k, **v) for k, v in idx["indicators"].items()
-            ),
+            indicators=tuple(IndicatorSpec(key=k, **v) for k, v in idx["indicators"].items()),
             census_key=raw["census"]["key"],
             census_column_map=dict(raw["census"]["column_map"]),
             owner_categories=tuple(raw["ownership"]["categories"]),

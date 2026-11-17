@@ -1,5 +1,11 @@
 # Who Owns the Land?
 
+[![CI](https://github.com/liandusmarty-debug/who-owns-the-land/actions/workflows/ci.yml/badge.svg)](https://github.com/liandusmarty-debug/who-owns-the-land/actions/workflows/ci.yml)
+[![Code: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE)
+[![Data: CC BY 4.0](https://img.shields.io/badge/data-CC%20BY%204.0-lightgrey.svg)](LICENSE-DATA.md)
+
+**Live preview (synthetic data):** https://liandusmarty-debug.github.io/who-owns-the-land/
+
 A non-profit, open data project that profiles **neighbourhoods (never individuals)** in the
 City of Cape Town: how deprived each area is, and who owns the land underneath it.
 It supports the Masiphumelele housing pilot.
@@ -52,3 +58,9 @@ notebooks/             exploration only; core logic lives in src/
 ```
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the design and roadmap.
+
+## Contributing, privacy and licences
+
+- How to help: [CONTRIBUTING.md](CONTRIBUTING.md) · [Code of conduct](CODE_OF_CONDUCT.md)
+- Privacy rules and how to report a concern: [PRIVACY.md](PRIVACY.md)
+- Code is [MIT](LICENSE). Published outputs are [CC BY 4.0](LICENSE-DATA.md). Third-party sources keep their own terms (see `sources.md`).

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Privacy concern (POPIA)
+    url: https://github.com/liandusmarty-debug/who-owns-the-land/blob/main/PRIVACY.md
+    about: Think something identifies a person or household? Read this first — please don't post details publicly.

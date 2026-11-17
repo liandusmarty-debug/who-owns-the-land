@@ -46,22 +46,26 @@ class WebExporter:
         for geom, row in zip(self.geometries(a), a.itertuples(index=False), strict=False):
             r = row._asdict()
             sup = bool(r["suppressed"])
-            feats.append({
-                "type": "Feature",
-                "geometry": geom,
-                "properties": {
-                    "c": r["sal_code"], "n": r["area_name"], "w": r["ward_id"],
-                    "s": None if r["settlement"] is None or r["settlement"] != r["settlement"] else r["settlement"],
-                    "h": None if sup else _num(r["households"], 0),
-                    "q": None if sup else _num(r["deprivation_quintile"], 0),
-                    "r": None if sup else _num(r["deprivation_rank"], 0),
-                    "x": None if sup else _num(r["deprivation_index"], 2),
-                    "i": [None if sup else _num(r[c]) for c in ind_cols],
-                    "o": [_num(r[c]) for c in own_cols],
-                    "d": r["dominant_owner"] if isinstance(r["dominant_owner"], str) else None,
-                    "z": int(sup),
-                },
-            })
+            feats.append(
+                {
+                    "type": "Feature",
+                    "geometry": geom,
+                    "properties": {
+                        "c": r["sal_code"],
+                        "n": r["area_name"],
+                        "w": r["ward_id"],
+                        "s": None if r["settlement"] is None or r["settlement"] != r["settlement"] else r["settlement"],
+                        "h": None if sup else _num(r["households"], 0),
+                        "q": None if sup else _num(r["deprivation_quintile"], 0),
+                        "r": None if sup else _num(r["deprivation_rank"], 0),
+                        "x": None if sup else _num(r["deprivation_index"], 2),
+                        "i": [None if sup else _num(r[c]) for c in ind_cols],
+                        "o": [_num(r[c]) for c in own_cols],
+                        "d": r["dominant_owner"] if isinstance(r["dominant_owner"], str) else None,
+                        "z": int(sup),
+                    },
+                }
+            )
         return {
             "meta": {
                 "generated": date.today().isoformat(),
@@ -84,7 +88,8 @@ class WebExporter:
         (out / "data").mkdir(parents=True, exist_ok=True)
         payload = json.dumps(self.build(ctx), separators=(",", ":"), ensure_ascii=False)
         (out / "data" / "areas.js").write_text(f"window.WOTL={payload};", encoding="utf-8")
-        shutil.copyfile(src / "index.html", out / "map.html")
+        for page in ("map.html", "index.html"):  # index.html so any static host serves it at /
+            shutil.copyfile(src / "index.html", out / page)
         for name in ("app.js", "style.css"):
             shutil.copyfile(src / name, out / name)
         shutil.copytree(src / "vendor", out / "vendor", dirs_exist_ok=True)

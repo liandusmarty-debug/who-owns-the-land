@@ -20,9 +20,7 @@ class JoinStage(Stage):
         sal: gpd.GeoDataFrame = ctx["sal_boundaries"].merge(ctx["census"], on=cfg.census_key, how="left")
         unmatched = int(sal["households"].isna().sum())
         if unmatched:
-            ctx.tables.setdefault("caveats", []).append(
-                f"{unmatched} SAL polygons had no matching census record."
-            )
+            ctx.tables.setdefault("caveats", []).append(f"{unmatched} SAL polygons had no matching census record.")
 
         metric = sal.to_crs(cfg.metric_crs)
         sal["area_km2"] = (metric.area / 1e6).astype("float32")
@@ -35,8 +33,9 @@ class JoinStage(Stage):
 
         # informal settlement: largest-overlap settlement above the threshold
         stl = ctx["informal_settlements"].to_crs(cfg.metric_crs)
-        ov = gpd.overlay(metric[["sal_code", "geometry"]], stl[["name", "geometry"]], how="intersection",
-                         keep_geom_type=True)
+        ov = gpd.overlay(
+            metric[["sal_code", "geometry"]], stl[["name", "geometry"]], how="intersection", keep_geom_type=True
+        )
         sal["settlement"] = pd.NA
         sal["settlement_share"] = 0.0
         if len(ov):

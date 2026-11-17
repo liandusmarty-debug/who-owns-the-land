@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install (locked)
+        run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check src tests
+
+      - name: Format check
+        run: uv run ruff format --check src tests
+
+      - name: Tests
+        run: uv run pytest -q
+
+      - name: Sample build (full pipeline, synthetic data)
+        run: uv run wotl build --sample
+
+      - name: Privacy check on outputs
+        # belt and braces: fail if a personal-data column name appears in any published file
+        run: |
+          if grep -rIilE '"?(owner_name|registered_owner|id_number|surname)"?' outputs/_sample \
+               --include='*.csv' --include='*.md' --include='*.js' --exclude-dir=vendor; then
+            echo "::error::personal-data column found in outputs"; exit 1
+          fi
+
+      - name: Size budget (keep it potato-friendly)
+        run: |
+          bytes=$(du -sb outputs/_sample --exclude=vendor | cut -f1)
+          echo "sample site size: $bytes bytes"
+          test "$bytes" -lt 2000000
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sample-site
+          path: outputs/_sample
+          retention-days: 14

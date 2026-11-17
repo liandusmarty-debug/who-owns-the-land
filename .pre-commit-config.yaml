@@ -1,0 +1,26 @@
+exclude: ^web/vendor/   # third-party files stay byte-for-byte as shipped
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.5
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-yaml
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: local
+    hooks:
+      # `language: fail` runs no program: it fails whenever a staged file matches `files`,
+      # printing `entry` as the error. A second safety net behind .gitignore (e.g. `git add -f`).
+      - id: no-data-files
+        name: block raw/processed data and output files
+        entry: data files must not be committed (they are rebuilt from sources)
+        language: fail
+        files: ^(data/(raw|processed)|outputs)/(?!\.gitkeep$)

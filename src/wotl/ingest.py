@@ -34,9 +34,7 @@ def _find(folder: Path, exts: tuple[str, ...]) -> Path:
         hits = sorted(folder.rglob(f"*{ext}"))
         if hits:
             return hits[0]
-    raise FileNotFoundError(
-        f"No {exts} file in {folder}. Download it manually (see sources in config/pipeline.toml)."
-    )
+    raise FileNotFoundError(f"No {exts} file in {folder}. Download it manually (see sources in config/pipeline.toml).")
 
 
 def read_vector(folder: Path) -> gpd.GeoDataFrame:
@@ -95,8 +93,10 @@ class IngestStage(Stage):
         srclog.save()
         md = srclog.render_markdown()
         if ctx.sample_mode:
-            md = ("> **SYNTHETIC SAMPLE DATA — not real. "
-                  "Metadata below describes the real sources it stands in for.**\n\n") + md
+            md = (
+                "> **SYNTHETIC SAMPLE DATA — not real. "
+                "Metadata below describes the real sources it stands in for.**\n\n"
+            ) + md
         md_path = raw / "sources.md" if ctx.sample_mode else ctx.config.paths.root / "sources.md"
         md_path.write_text(md, encoding="utf-8")
 
@@ -123,8 +123,9 @@ class SampleCityGenerator:
         hotspots = [(0.45, 0.5, 0.18), (0.8, 0.2, 0.12), (0.15, 0.85, 0.1)]
         for i in range(self.n):
             for j in range(self.n):
-                cells.append(box(x0 + i * self.cell, y0 + j * self.cell,
-                                 x0 + (i + 1) * self.cell, y0 + (j + 1) * self.cell))
+                cells.append(
+                    box(x0 + i * self.cell, y0 + j * self.cell, x0 + (i + 1) * self.cell, y0 + (j + 1) * self.cell)
+                )
                 codes.append(f"1990{i:03d}{j:03d}")
                 u, v = (i + 0.5) / self.n, (j + 0.5) / self.n
                 d = max(np.exp(-((u - a) ** 2 + (v - b) ** 2) / (2 * s * s)) for a, b, s in hotspots)
@@ -141,19 +142,33 @@ class SampleCityGenerator:
 
         lf = (pop * 0.45).astype(int)
         adults = (pop * 0.62).astype(int)
-        census = pd.DataFrame({
-            "sal_code": codes, "population": pop, "households": hh,
-            "hh_informal": share(0.01, 0.85), "hh_no_piped_water": share(0.0, 0.55),
-            "hh_no_flush_toilet": share(0.01, 0.6), "hh_no_electric_light": share(0.0, 0.3),
-            "hh_low_income": share(0.1, 0.8),
-            "labour_force": lf, "unemployed": self.rng.binomial(lf, np.clip(0.08 + 0.45 * dep, 0, 1)),
-            "adults_20plus": adults, "adults_no_matric": self.rng.binomial(adults, np.clip(0.2 + 0.5 * dep, 0, 1)),
-        })
+        census = pd.DataFrame(
+            {
+                "sal_code": codes,
+                "population": pop,
+                "households": hh,
+                "hh_informal": share(0.01, 0.85),
+                "hh_no_piped_water": share(0.0, 0.55),
+                "hh_no_flush_toilet": share(0.01, 0.6),
+                "hh_no_electric_light": share(0.0, 0.3),
+                "hh_low_income": share(0.1, 0.8),
+                "labour_force": lf,
+                "unemployed": self.rng.binomial(lf, np.clip(0.08 + 0.45 * dep, 0, 1)),
+                "adults_20plus": adults,
+                "adults_no_matric": self.rng.binomial(adults, np.clip(0.2 + 0.5 * dep, 0, 1)),
+            }
+        )
 
         k = 4  # wards = 4x4 blocks of SALs
-        wards = sal.assign(
-            ward_id=[f"Ward {100 + (i // k) * (self.n // k) + (j // k)}" for i in range(self.n) for j in range(self.n)]
-        ).dissolve("ward_id").reset_index()[["ward_id", "geometry"]]
+        wards = (
+            sal.assign(
+                ward_id=[
+                    f"Ward {100 + (i // k) * (self.n // k) + (j // k)}" for i in range(self.n) for j in range(self.n)
+                ]
+            )
+            .dissolve("ward_id")
+            .reset_index()[["ward_id", "geometry"]]
+        )
 
         def blob(cx: float, cy: float, r: float) -> object:
             return Point(x0 + cx * 2 * half, y0 + cy * 2 * half).buffer(r * 2 * half, quad_segs=6)
@@ -164,8 +179,14 @@ class SampleCityGenerator:
             crs=self.UTM,
         )
 
-        owners = ["CITY OF CAPE TOWN", "WESTERN CAPE PROVINCIAL GOVERNMENT", "REPUBLIC OF SOUTH AFRICA",
-                  "SAMPLE PERSON {n:04d}", "SAMPLE HOLDINGS (PTY) LTD", "SAMPLE FAMILY TRUST"]
+        owners = [
+            "CITY OF CAPE TOWN",
+            "WESTERN CAPE PROVINCIAL GOVERNMENT",
+            "REPUBLIC OF SOUTH AFRICA",
+            "SAMPLE PERSON {n:04d}",
+            "SAMPLE HOLDINGS (PTY) LTD",
+            "SAMPLE FAMILY TRUST",
+        ]
         pc, pgeo, powner = 370.0, [], []
         m = int(2 * half // pc) + 1
         for i in range(m):

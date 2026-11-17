@@ -1,0 +1,27 @@
+name: Data correction or new source
+description: A figure looks wrong, or you know a public dataset we should use
+labels: [data]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of issue?
+      options:
+        - A figure or ownership type looks wrong
+        - Suggest a new data source
+        - A source's licence or link has changed
+    validations:
+      required: true
+  - type: input
+    id: area
+    attributes:
+      label: Area (place name, ward or small-area code)
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: >
+        What's wrong or what's the source (publisher, link, licence)? Please do NOT include names or
+        personal details of individual people or households.
+    validations:
+      required: true

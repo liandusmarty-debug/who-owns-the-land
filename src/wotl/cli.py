@@ -18,15 +18,17 @@ from .report import ReportStage
 
 
 def build_pipeline(sample: bool) -> Pipeline:
-    return Pipeline([
-        SampleIngestStage() if sample else IngestStage(),
-        CleanStage(),
-        JoinStage(),
-        IndexStage(),
-        OwnershipStage(),
-        ReportStage(),
-        MapStage(),
-    ])
+    return Pipeline(
+        [
+            SampleIngestStage() if sample else IngestStage(),
+            CleanStage(),
+            JoinStage(),
+            IndexStage(),
+            OwnershipStage(),
+            ReportStage(),
+            MapStage(),
+        ]
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

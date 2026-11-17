@@ -45,9 +45,22 @@ class ReportStage(Stage):
         own_cols = ctx["ownership_columns"]
         ind_cols = [f"pct_{s.key}" for s in cfg.indicators]
 
-        cols = ["sal_code", "area_name", "ward_id", "settlement", "population", "households", "area_km2",
-                "suppressed", *ind_cols, "deprivation_index", "deprivation_rank", "deprivation_quintile",
-                *own_cols, "dominant_owner"]
+        cols = [
+            "sal_code",
+            "area_name",
+            "ward_id",
+            "settlement",
+            "population",
+            "households",
+            "area_km2",
+            "suppressed",
+            *ind_cols,
+            "deprivation_index",
+            "deprivation_rank",
+            "deprivation_quintile",
+            *own_cols,
+            "dominant_owner",
+        ]
         table = pd.DataFrame(areas[cols]).sort_values("deprivation_rank", na_position="last")
         table.loc[table["suppressed"], ["population", "households"]] = np.nan
         table[["population", "households"]] = table[["population", "households"]].round().astype("Int64")
@@ -63,8 +76,9 @@ class ReportStage(Stage):
     def _summary(self, ctx: Context, table: pd.DataFrame, own_cols: list[str], caveats: list[str]) -> str:
         cfg = ctx.config
         top = table.dropna(subset=["deprivation_rank"]).head(20)
-        top_view = top[["deprivation_rank", "area_name", "ward_id", "households", "deprivation_index",
-                        "dominant_owner"]].copy()
+        top_view = top[
+            ["deprivation_rank", "area_name", "ward_id", "households", "deprivation_index", "dominant_owner"]
+        ].copy()
         top_view["deprivation_index"] = top_view["deprivation_index"].round(2)
         top_view["households"] = top_view["households"].astype("Int64")
         top_view.columns = ["Rank", "Area", "Ward", "Households", "Index", "Main owner type"]
@@ -75,15 +89,19 @@ class ReportStage(Stage):
         q5 = a[a["deprivation_quintile"] == cfg.quintiles]
         q5_area = max(float(q5["area_km2"].sum()), 1e-9)
         q5_mix = pd.Series({c: float((q5[c] * q5["area_km2"]).sum()) / q5_area for c in own_cols}).round(1)
-        mix = pd.DataFrame({
-            "Owner type": [c.removeprefix("own_").removesuffix("_pct").title() for c in own_cols],
-            "All areas (% of land)": city_mix.values,
-            "Most deprived quintile (% of land)": q5_mix.values,
-        })
+        mix = pd.DataFrame(
+            {
+                "Owner type": [c.removeprefix("own_").removesuffix("_pct").title() for c in own_cols],
+                "All areas (% of land)": city_mix.values,
+                "Most deprived quintile (% of land)": q5_mix.values,
+            }
+        )
         stl = ctx["settlement_ownership"].reset_index()
         stl[stl.select_dtypes("float").columns] = stl.select_dtypes("float").astype(float).round(1)
-        stl.columns = ["Settlement"] + [c.removeprefix("own_").removesuffix("_pct").title() if c.startswith("own_")
-                                        else c.replace("_", " ").title() for c in stl.columns[1:]]
+        stl.columns = ["Settlement"] + [
+            c.removeprefix("own_").removesuffix("_pct").title() if c.startswith("own_") else c.replace("_", " ").title()
+            for c in stl.columns[1:]
+        ]
 
         banner = "> **SYNTHETIC SAMPLE DATA — for development only. Not real findings.**\n\n" if ctx.sample_mode else ""
         return (
@@ -113,14 +131,18 @@ class ReportStage(Stage):
         if sub.empty:
             return f"# {cfg.pilot_name} profile\n\n{banner}No small areas matched this settlement name.\n"
 
-        lines = [f"# {cfg.pilot_name} — area profile\n", banner.rstrip("\n"),
-                 f"**Small areas:** {len(sub)} · **Households:** {int(sub['households'].sum()):,} · "
-                 f"**People:** {int(sub['population'].sum()):,} · **Area:** {sub['area_km2'].sum():.2f} km²\n",
-                 f"**City rank of its most deprived small area:** "
-                 f"{int(sub['deprivation_rank'].min()) if sub['deprivation_rank'].notna().any() else 'n/a'} "
-                 f"of {int(a['deprivation_rank'].max())}\n",
-                 "## Living conditions (pooled across the area vs. city)\n",
-                 "| Indicator | " + cfg.pilot_name + " | City |", "|---|---|---|"]
+        lines = [
+            f"# {cfg.pilot_name} — area profile\n",
+            banner.rstrip("\n"),
+            f"**Small areas:** {len(sub)} · **Households:** {int(sub['households'].sum()):,} · "
+            f"**People:** {int(sub['population'].sum()):,} · **Area:** {sub['area_km2'].sum():.2f} km²\n",
+            f"**City rank of its most deprived small area:** "
+            f"{int(sub['deprivation_rank'].min()) if sub['deprivation_rank'].notna().any() else 'n/a'} "
+            f"of {int(a['deprivation_rank'].max())}\n",
+            "## Living conditions (pooled across the area vs. city)\n",
+            "| Indicator | " + cfg.pilot_name + " | City |",
+            "|---|---|---|",
+        ]
         for s in cfg.indicators:
             local = sub[s.numerator].sum() / max(sub[s.denominator].sum(), 1) * 100
             city = a[s.numerator].sum() / max(a[s.denominator].sum(), 1) * 100

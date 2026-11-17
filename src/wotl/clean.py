@@ -19,8 +19,10 @@ ALIASES: dict[str, dict[str, tuple[str, ...]]] = {
     "sal_boundaries": {"sal_code": ("sal_code", "SAL_CODE", "SAL", "sal")},
     "wards": {"ward_id": ("ward_id", "WARD_NAME", "WARD_ID", "WARD", "ward")},
     "informal_settlements": {"name": ("name", "INF_STLM_NAME", "NAME", "SETTLEMENT", "Name")},
-    "parcels": {"owner_name": ("owner_name", "OWNER", "OWNER_NAME", "REGISTERED_OWNER"),
-                "owner_type": ("owner_type", "OWNER_TYPE", "OWNERSHIP")},
+    "parcels": {
+        "owner_name": ("owner_name", "OWNER", "OWNER_NAME", "REGISTERED_OWNER"),
+        "owner_type": ("owner_type", "OWNER_TYPE", "OWNERSHIP"),
+    },
 }
 
 

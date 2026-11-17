@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "Who Owns the Land? — neighbourhood profiles of deprivation and land ownership, City of Cape Town"
+type: software
+authors:
+  - name: "Who Owns the Land? contributors"
+repository-code: "https://github.com/liandusmarty-debug/who-owns-the-land"
+license: MIT
+keywords:
+  - land ownership
+  - South Africa
+  - Cape Town
+  - deprivation index
+  - open data
+  - census 2022

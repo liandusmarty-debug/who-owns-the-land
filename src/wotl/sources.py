@@ -43,11 +43,7 @@ class SourceLog:
                 self.records[r["id"]] = SourceRecord(**r)
 
     def record(self, spec: SourceSpec, folder: Path, retrieved: str | None = None) -> SourceRecord:
-        files = {
-            str(p.relative_to(self.raw_dir)): sha256(p)
-            for p in sorted(folder.rglob("*"))
-            if p.is_file()
-        }
+        files = {str(p.relative_to(self.raw_dir)): sha256(p) for p in sorted(folder.rglob("*")) if p.is_file()}
         prev = self.records.get(spec.id)
         rec = SourceRecord(
             id=spec.id,
