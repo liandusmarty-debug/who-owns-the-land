@@ -65,6 +65,9 @@ def test_sample_build_end_to_end(cfg, tmp_path):
     out = ctx.outputs_dir
     for f in ("neighbourhood_profiles.csv", "summary.md", "map.html", "data/areas.js", "profile_masiphumelele.md"):
         assert (out / f).exists(), f
+    # sample mode must never download real data
+    assert not (tmp_path / "data" / "raw" / "_sample" / "parcels" / "parcels.geojson").exists()
+    assert not (tmp_path / "data" / "raw" / "_sample" / "sg_streets").exists()
     prof = pd.read_csv(out / "neighbourhood_profiles.csv")
     assert "owner_name" not in prof.columns
     assert prof.loc[prof["suppressed"], "deprivation_rank"].isna().all()

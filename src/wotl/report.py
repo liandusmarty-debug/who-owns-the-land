@@ -11,7 +11,8 @@ from .pipeline import Context, Stage
 from .privacy import PrivacyGuard
 
 STANDING_CAVEATS = [
-    "Census 2022 had undercount issues, especially in informal settlements; rates there may be understated.",
+    "Figures come from Census 2011, the latest census released at small-area level; many areas have changed since.",
+    "Censuses undercount some populations, especially in informal settlements; rates there may be understated.",
     "Small areas have small populations; areas below the household threshold are suppressed and not ranked.",
     "Cadastral and valuation-roll ownership does not reflect informal occupation or customary rights.",
     "The deprivation index is relative: it ranks areas against each other within the city, "

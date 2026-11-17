@@ -150,7 +150,7 @@
     b.hidden = false;
   }
   document.getElementById("about").innerHTML = `
-    <p>Built from public data on ${esc(META.generated)}. Shows ${fmt(META.areas)} Census 2022 small areas,
+    <p>Built from public data on ${esc(META.generated)}. Shows ${fmt(META.areas)} Census 2011 small areas (2011 baseline),
     ${fmt(META.ranked)} of them ranked. Only area-level figures are shown; no individual or household is identifiable.</p>
     <p>The living-conditions score combines: ${META.indicators.map(esc).join("; ")}.</p>
     <ul>${META.caveats.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>`;
