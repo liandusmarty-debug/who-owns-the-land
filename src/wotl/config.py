@@ -30,6 +30,10 @@ class SourceSpec:
     licence: str
     url: str = ""
     notes: str = ""
+    kind: str = "file"  # "file" (plain download) or "arcgis" (paged ArcGIS REST layer query)
+    where: str = "1=1"  # arcgis: attribute filter
+    out_fields: str = "*"  # arcgis: comma-separated fields to keep (drop anything personal here)
+    bbox: tuple[float, float, float, float] | None = None  # arcgis: lon/lat envelope filter
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,5 +99,7 @@ class PipelineConfig:
             pilot_name=raw["pilot"]["name"],
             simplify_tolerance_m=float(raw["web"]["simplify_tolerance_m"]),
             coord_precision=int(raw["web"]["coord_precision"]),
-            sources=tuple(SourceSpec(**s) for s in raw.get("sources", [])),
+            sources=tuple(
+                SourceSpec(**{**s, "bbox": tuple(s["bbox"]) if "bbox" in s else None}) for s in raw.get("sources", [])
+            ),
         )

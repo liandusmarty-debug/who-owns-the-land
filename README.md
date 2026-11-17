@@ -66,7 +66,7 @@ Grey areas have too few households to show figures safely (see [Privacy](#privac
 
 ## How the living-conditions score works
 
-Each Census 2022 *small area* (usually a few city blocks) is scored on seven indicators:
+Each Census 2011 *small area* (usually a few city blocks) is scored on seven indicators:
 
 | Indicator | Measured as |
 |---|---|
@@ -89,11 +89,16 @@ The score is **relative**: it compares areas within the city, not against a fixe
 
 | Source | What it provides |
 |---|---|
-| Stats SA, Census 2022 small-area layer | Population, households, dwellings, services, income, employment, education |
-| Stats SA / Municipal Demarcation Board | Small-area boundaries |
-| City of Cape Town Open Data Portal | Wards, informal settlements, zoning, land parcels, valuation roll (owner type) |
-| Surveyor-General (Cape Town) | Cadastral (erf) boundaries |
-| Deeds Office *(optional, priority areas only)* | Parcel ownership, published by **owner type only** |
+| Stats SA, Census 2011 small-area tables | Population, households, dwellings, services, income, employment, education |
+| Stats SA (via Western Cape spatial data warehouse) | Small-area boundaries and place names |
+| City of Cape Town Open Data Portal | Wards, suburbs, land parcels, zoning, population estimates |
+| Surveyor-General (Cape Town) | Public places, streets and unalienated state land |
+| Formal data requests and partners | Owner **type** for remaining parcels (see [`docs/requests/`](docs/requests/)) |
+
+> **Why Census 2011?** Stats SA hasn't released Census 2022 housing, services, income or employment
+> data at neighbourhood level, so 2011 is the most recent census that can be mapped this finely.
+> Figures are a **2011 baseline**, and many areas have changed since. Full research is in
+> [docs/DATA-SOURCES.md](docs/DATA-SOURCES.md).
 
 Every dataset's publisher, licence, retrieval date and file checksum is logged automatically in
 [`sources.md`](sources.md) each time the data is rebuilt.
@@ -181,7 +186,8 @@ data/, outputs/        git-ignored, always rebuilt from sources
 
 ## Known limitations
 
-- Census 2022 undercounted some populations, especially in informal settlements, so conditions
+- The figures are a 2011 baseline. Many areas, especially informal settlements, have grown and changed since.
+- Censuses undercount some populations, especially in informal settlements, so conditions
   there may be worse than the figures show.
 - Official cadastral and valuation records don't capture informal occupation or customary rights.
 - Small areas have small populations, so some figures are suppressed and individual rates can be noisy.
@@ -190,7 +196,8 @@ data/, outputs/        git-ignored, always rebuilt from sources
 ## Roadmap
 
 - [x] Reproducible pipeline, privacy guard-rails and a lightweight map (synthetic preview)
-- [ ] Confirm source licences and ingest real Census 2022 and City of Cape Town data
+- [x] Research and document real data sources and licences ([docs/DATA-SOURCES.md](docs/DATA-SOURCES.md))
+- [ ] Ingest Census 2011 and City of Cape Town data; send ownership data requests
 - [ ] Publish the first real city-wide ranking and the Masiphumelele profile
 - [ ] Plain-language explainers and isiXhosa / Afrikaans translations
 - [ ] Shareable links and printable profiles for each area

@@ -9,6 +9,7 @@ Two interchangeable stages:
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 
@@ -51,6 +52,69 @@ def read_table(folder: Path) -> pd.DataFrame:
     return pd.read_parquet(path)
 
 
+class ArcGISLayerFetcher:
+    """Downloads every feature of one ArcGIS REST layer as GeoJSON, paging past maxRecordCount."""
+
+    def __init__(self, session: requests.Session, timeout: int = 120) -> None:
+        self.session, self.timeout = session, timeout
+
+    def _get(self, url: str, params: dict) -> dict:
+        r = self.session.get(url, params=params, timeout=self.timeout)
+        r.raise_for_status()
+        data = r.json()
+        if "error" in data:
+            raise RuntimeError(f"{url}: {data['error'].get('message')} {data['error'].get('details', '')}")
+        return data
+
+    def query_params(self, spec: SourceSpec) -> dict:
+        params = {"where": spec.where, "outFields": spec.out_fields, "outSR": 4326, "f": "geojson"}
+        if spec.bbox:
+            xmin, ymin, xmax, ymax = spec.bbox
+            params |= {
+                "geometry": f"{xmin},{ymin},{xmax},{ymax}",
+                "geometryType": "esriGeometryEnvelope",
+                "inSR": 4326,
+                "spatialRel": "esriSpatialRelIntersects",
+            }
+        return params
+
+    def fetch(self, spec: SourceSpec, out: Path) -> int:
+        layer = spec.url.rstrip("/")
+        meta = self._get(layer, {"f": "json"})
+        page = int(meta.get("maxRecordCount") or 1000)
+        params = self.query_params(spec)
+        features: list[dict] = []
+        offset = 0
+        while True:
+            batch = self._get(f"{layer}/query", params | {"resultOffset": offset, "resultRecordCount": page})
+            feats = batch.get("features", [])
+            features.extend(feats)
+            log.info("  %s: %d features", spec.id, len(features))
+            if not feats or not (
+                batch.get("exceededTransferLimit")
+                or batch.get("properties", {}).get("exceededTransferLimit")
+                or len(feats) == page
+            ):
+                break
+            offset += len(feats)
+        tmp = out.with_suffix(".part")
+        tmp.write_text(json.dumps({"type": "FeatureCollection", "features": features}), encoding="utf-8")
+        tmp.rename(out)
+        (out.parent / "query.json").write_text(
+            json.dumps(
+                {
+                    "layer": layer,
+                    "params": params,
+                    "layer_name": meta.get("name"),
+                    "copyright": meta.get("copyrightText"),
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        return len(features)
+
+
 class Downloader:
     def __init__(self, timeout: int = 120) -> None:
         self.session = requests.Session()
@@ -63,6 +127,10 @@ class Downloader:
             return  # raw data is immutable: never re-download over it
         if not spec.url:
             log.warning("source %s has no URL — place its file in %s", spec.id, folder)
+            return
+        if spec.kind == "arcgis":
+            log.info("querying ArcGIS layer %s", spec.url)
+            ArcGISLayerFetcher(self.session, self.timeout).fetch(spec, folder / f"{spec.id}.geojson")
             return
         name = spec.url.rstrip("/").rsplit("/", 1)[-1].split("?")[0] or f"{spec.id}.bin"
         log.info("downloading %s", spec.url)
@@ -84,10 +152,11 @@ class IngestStage(Stage):
     def run(self, ctx: Context) -> None:
         raw = self.raw_dir or ctx.config.paths.raw
         srclog = SourceLog(raw)
-        downloader = Downloader()
+        downloader = None if ctx.sample_mode else Downloader()  # sample mode never touches the network
         for spec in ctx.config.sources:
             folder = raw / spec.id
-            downloader.fetch(spec, folder)
+            if downloader:
+                downloader.fetch(spec, folder)
             if folder.exists() and any(folder.iterdir()):
                 srclog.record(spec, folder)
         srclog.save()

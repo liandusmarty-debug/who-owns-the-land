@@ -108,43 +108,109 @@ coord_precision = 5          # decimal places (~1 m) — keeps the map light
 
 # ---------------------------------------------------------------------------
 # Data sources. Every dataset must declare publisher, licence and URL.
-# A source with an empty url is fetched manually: drop the file into
-# data/raw/<id>/ and the pipeline will pick it up and log it.
+# Full research notes and access routes: docs/DATA-SOURCES.md
+#
+#   kind = "arcgis"  -> paged ArcGIS REST query (where / out_fields / bbox), saved as GeoJSON
+#   url  = ""        -> manual: drop the file(s) into data/raw/<id>/ (logged + checksummed)
+#
+# Licences
+#   Stats SA: reuse allowed if Stats SA is acknowledged as the original source, the analysis is
+#     presented as independent processing, and reprocessed data is not sold.
+#   City of Cape Town: Open Data Policy 27781 (2020) + Terms of Use
+#     (https://www.capetown.gov.za/General/Terms-of-use-open-data): free, "as is", no reuse
+#     restriction; credit "City of Cape Town Open Data Portal".
+#   Surveyor-General: (c) Surveyor General, Cape Town, via Western Cape spatial data warehouse.
 # ---------------------------------------------------------------------------
+
 [[sources]]
 id = "census_sal"
-title = "Census 2022 — Small Area Layer attribute tables"
+title = "Census 2011, small-area tables (dwelling, water, toilet, lighting, income, employment, education)"
 publisher = "Statistics South Africa"
-licence = "TODO: confirm Stats SA terms of use"
+licence = "Stats SA: use with acknowledgement as original source; not for resale"
 url = ""
-notes = "Download SAL-level tables for City of Cape Town from Stats SA SuperWEB2 / data portal."
+notes = "Manual export from SuperWEB2 (https://superweb.statssa.gov.za/webapi/), see docs/DATA-SOURCES.md. Census 2022 small-area data is not publicly released."
 
 [[sources]]
 id = "sal_boundaries"
-title = "Census 2022 SAL boundaries"
-publisher = "Statistics South Africa / Municipal Demarcation Board"
-licence = "TODO: confirm"
-url = ""
-notes = "Shapefile or GeoPackage of SAL polygons."
+title = "Small Areas (Census 2011), City of Cape Town"
+publisher = "Statistics South Africa, via Western Cape Government spatial data warehouse"
+licence = "Stats SA: use with acknowledgement as original source; not for resale"
+kind = "arcgis"
+url = "https://gis.westerncape.gov.za/server2/rest/services/SpatialDataWarehouse/StatsSA_CensusBoundaries/MapServer/2"
+where = "MN_MDB_C = 'CPT'"
+out_fields = "SAL_CODE,SP_CODE,SP_NAME,MP_CODE,MP_NAME"
 
 [[sources]]
 id = "wards"
-title = "Municipal wards"
-publisher = "City of Cape Town Open Data Portal"
-licence = "TODO: confirm City of Cape Town open data licence"
-url = ""
+title = "Municipal wards (2026 demarcation, 118 wards)"
+publisher = "City of Cape Town / Municipal Demarcation Board"
+licence = "City of Cape Town Open Data Policy 27781 + Terms of Use"
+kind = "arcgis"
+url = "https://citymaps.capetown.gov.za/agsext/rest/services/Theme_Based/Political_Administrative_Boundaries/MapServer/7"
+out_fields = "WARD_NAME,WARD_YEAR"
+
+[[sources]]
+id = "suburbs"
+title = "Official suburbs"
+publisher = "City of Cape Town"
+licence = "City of Cape Town Open Data Policy 27781 + Terms of Use"
+kind = "arcgis"
+url = "https://citymaps.capetown.gov.za/agsext/rest/services/Theme_Based/Political_Administrative_Boundaries/MapServer/4"
+out_fields = "OFC_SBRB_NAME"
 
 [[sources]]
 id = "informal_settlements"
 title = "Informal settlement boundaries"
-publisher = "City of Cape Town Open Data Portal"
-licence = "TODO: confirm"
+publisher = "City of Cape Town"
+licence = "n/a"
 url = ""
+notes = "NOT openly available: the Western Cape CoCT_InformalSettlements layer now requires a token. Census 2011 sub-place names are used instead."
 
 [[sources]]
 id = "parcels"
-title = "Land parcels / cadastre with valuation-roll owner type"
-publisher = "City of Cape Town Open Data Portal; Surveyor-General (Cape Town)"
-licence = "TODO: confirm"
+title = "Land parcels (cadastre, legal status, zoning)"
+publisher = "City of Cape Town Open Data Portal"
+licence = "City of Cape Town Open Data Policy 27781 + Terms of Use"
+kind = "arcgis"
+url = "https://services6.arcgis.com/nyYfO9SxHU2ChQd9/arcgis/rest/services/Property/FeatureServer/0"
+# street address fields deliberately excluded (POPIA)
+out_fields = "SG26_CODE,PRTY_NMBR,OFC_SBRB_NAME,WARD_NAME,LU_LGL_STS_DSCR,ZONING"
+notes = "852,214 parcels; no owner field."
+
+[[sources]]
+id = "sg_public_places"
+title = "Public Places (Surveyor-General)"
+publisher = "Surveyor General, Cape Town, via Western Cape Government spatial data warehouse"
+licence = "(c) Surveyor General Cape Town"
+kind = "arcgis"
+url = "https://gis.westerncape.gov.za/server2/rest/services/SpatialDataWarehouse/SG_PlanningCadastre/MapServer/7"
+out_fields = "PRCL_KEY,PRCL_TYPE,LSTATUS"
+bbox = [18.30, -34.36, 18.99, -33.47]
+
+[[sources]]
+id = "sg_streets"
+title = "Streets Cadastre (Surveyor-General)"
+publisher = "Surveyor General, Cape Town, via Western Cape Government spatial data warehouse"
+licence = "(c) Surveyor General Cape Town"
+kind = "arcgis"
+url = "https://gis.westerncape.gov.za/server2/rest/services/SpatialDataWarehouse/SG_PlanningCadastre/MapServer/14"
+out_fields = "PRCL_KEY,PRCL_TYPE,LSTATUS"
+bbox = [18.30, -34.36, 18.99, -33.47]
+
+[[sources]]
+id = "sg_state_land"
+title = "Unalienated State Land (Surveyor-General)"
+publisher = "Surveyor General, Cape Town, via Western Cape Government spatial data warehouse"
+licence = "(c) Surveyor General Cape Town"
+kind = "arcgis"
+url = "https://gis.westerncape.gov.za/server2/rest/services/SpatialDataWarehouse/SG_PlanningCadastre/MapServer/11"
+out_fields = "PRCL_KEY,PRCL_TYPE,LSTATUS"
+bbox = [18.30, -34.36, 18.99, -33.47]
+
+[[sources]]
+id = "owner_types"
+title = "Owner type per parcel (SG26 code -> owner type; never names)"
+publisher = "Who Owns the Land? (compiled from City response, People's Land Map, pilot Deeds data)"
+licence = "Per contributing source; see docs/requests/"
 url = ""
-notes = "Must contain a raw owner field for classification; names are dropped after classifying."
+notes = "Manual CSV with columns sg26_code, owner_type, source. Pending responses to docs/requests/."
